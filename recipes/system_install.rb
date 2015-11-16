@@ -33,10 +33,25 @@ end
 key_server = node['rvm']['gpg']['keyserver'] || "hkp://keys.gnupg.net:80"
 home_dir = "#{node['rvm']['gpg']['homedir'] || '~'}/.gnupg"
 
+key_server_without_port = key_server
+key_count = key_server.split(':').count
+
+if key_count > 2
+  key_server_without_port = key_server.split(':').slice(0..(key_count-2)).join(':')
+end
+
+
+execute 'Adding gpg key' do
+  command "sudo `which gpg2 || which gpg` --keyserver #{key_server_without_port} --homedir #{home_dir} --recv-keys #{node['rvm']['gpg_key']}"
+  only_if 'which gpg2 || which gpg'
+  only_if { ::File.exists?( home_dir ) }
+  not_if { node['rvm']['gpg_key'].empty? }
+end
+
 execute 'Adding gpg key' do
   command "sudo `which gpg2 || which gpg` --keyserver #{key_server} --homedir #{home_dir} --recv-keys #{node['rvm']['gpg_key']}"
   only_if 'which gpg2 || which gpg'
-  # not_if { ::File.exists?( home_dir ) }
+  not_if { ::File.exists?( home_dir ) }
   not_if { node['rvm']['gpg_key'].empty? }
 end
 
